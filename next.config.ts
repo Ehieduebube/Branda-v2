@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  // Dev only: let phones on the same Wi-Fi (http://192.168.x.x:3000) load the
+  // dev server's scripts. Without this the page renders but never hydrates.
+  allowedDevOrigins: ["192.168.*.*"],
   turbopack: {
     rules: {
       "*.css": {
