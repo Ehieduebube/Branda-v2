@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useTransition } from "react";
+import { Suspense, useEffect, useId, useRef, useTransition } from "react";
 
 import { GlobeIcon } from "@/components/ui/icons";
 import { MARKETS, MARKET_CODES } from "@/data/markets";
@@ -12,11 +12,22 @@ import type { MarketCode } from "@/types";
  * Country/currency selector. A native <select> gives keyboard, screen reader
  * and mobile picker support for free. Switching keeps the user on the
  * equivalent page (and query string) in the target market.
+ *
+ * With Cache Components, usePathname() suspends on routes whose params aren't
+ * known at build time (e.g. the /[market]/[...rest] catch-all), so the live
+ * selector sits behind Suspense with an identical, disabled fallback.
  */
 export function MarketSelector({ current }: { current: MarketCode }) {
+  return (
+    <Suspense fallback={<MarketSelect current={current} disabled />}>
+      <LiveMarketSelector current={current} />
+    </Suspense>
+  );
+}
+
+function LiveMarketSelector({ current }: { current: MarketCode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const id = useId();
   const [isPending, startTransition] = useTransition();
   const prefetched = useRef(false);
 
@@ -52,6 +63,24 @@ export function MarketSelector({ current }: { current: MarketCode }) {
     startTransition(() => router.push(targetHref(target), { scroll: false }));
   }
 
+  return <MarketSelect current={current} onChange={handleChange} onIntent={prefetchMarkets} busy={isPending} />;
+}
+
+function MarketSelect({
+  current,
+  onChange,
+  onIntent,
+  busy = false,
+  disabled = false,
+}: {
+  current: MarketCode;
+  onChange?: (event: React.ChangeEvent<HTMLSelectElement>) => void;
+  onIntent?: () => void;
+  busy?: boolean;
+  disabled?: boolean;
+}) {
+  const id = useId();
+
   return (
     <div className="relative flex items-center">
       <label htmlFor={id} className="sr-only">
@@ -61,10 +90,11 @@ export function MarketSelector({ current }: { current: MarketCode }) {
       <select
         id={id}
         value={current}
-        onChange={handleChange}
-        onPointerEnter={prefetchMarkets}
-        onFocus={prefetchMarkets}
-        aria-busy={isPending}
+        onChange={onChange}
+        onPointerEnter={onIntent}
+        onFocus={onIntent}
+        aria-busy={busy}
+        disabled={disabled}
         className="min-h-10 w-40 appearance-none truncate rounded-lg border border-slate-300 bg-white py-1.5 pr-8 pl-8 text-sm font-medium text-slate-900 hover:border-slate-400 sm:w-auto"
       >
         {MARKET_CODES.map((code) => {
