@@ -1,0 +1,15 @@
+import type { MetadataRoute } from "next";
+
+import { SITE_URL } from "@/lib/utils";
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: {
+      userAgent: "*",
+      allow: "/",
+      // Per-visitor pages have no search value.
+      disallow: ["/*/cart", "/*/checkout"],
+    },
+    sitemap: new URL("/sitemap.xml", SITE_URL).toString(),
+  };
+}
